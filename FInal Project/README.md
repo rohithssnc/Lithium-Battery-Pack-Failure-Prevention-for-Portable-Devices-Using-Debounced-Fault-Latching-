@@ -641,26 +641,54 @@ uses the routed netlist, extracted parasitics (SPEF, one nominal corner) and a p
 
 ![Slack at all 16 corners, pre-layout against post-route](images/fig_sta_slack.png)
 
-*Figure 7. The same data as Figures 5 and 6, plotted per corner. Setup improved after layout at every failing corner, and hold got worse at
+*Figure 7. The same data as Figures 5 and 6, plotted as lines over the 16 corners (dashed = pre-layout, solid = post-route). Setup improved after layout at every failing corner, and hold got worse at
 the four cold slow corners.*
 
-The next four figures break the same data out individually. Bars hatched in red are violations, and every bar carries its value, so nothing depends on color alone.
+The next figures are the line charts from the Excel workbook (`sta_all_corners.xlsx`), one chart per metric. The red dashed line is zero, so any point below it is a violation. Each figure has its explanation directly under it.
 
-![Pre-layout STA, one bar per corner](images/fig_sta_prelayout.png)
+![Pre-layout setup slack](images/xl_pre_setup.png)
 
-*Figure 7a. Pre-layout STA on its own: setup and hold slack at each of the 16 corners. Three corners fail setup (`ss_n40C_1v28`, `1v35`, `1v40`), and `ss_n40C_1v28` also fails hold by 0.27 ns.*
+*Figure 7a. Pre-layout setup slack at the 16 corners.*
 
-![Post-route STA, one bar per corner](images/fig_sta_postroute.png)
+Setup slack is above 6 ns at the fast and typical corners and falls at the slow ones. It goes below zero at three cold slow corners: `ss_n40C_1v28` (-8.38 ns), `ss_n40C_1v35` (-2.91 ns) and `ss_n40C_1v40` (-0.68 ns). At `ss_n40C_1v44` it is back to +0.61 ns.
 
-*Figure 7b. Post-route STA on its own (run `final2`). Setup fails at `ss_n40C_1v28` and `1v35`. Hold fails at `1v28`, `1v35`, `1v40` and `1v44`, and the worst hold slack is -2.42 ns.*
+![Pre-layout hold slack](images/xl_pre_hold.png)
 
-![Setup and hold slack, one panel per corner](images/fig_sta_per_corner.png)
+*Figure 7b. Pre-layout hold slack at the 16 corners.*
 
-*Figure 7c. One panel per corner, with pre-layout (blue) and post-route (orange) side by side for setup and hold. Panel titles in red mark corners that violate after routing.*
+Hold slack is positive at every corner except `ss_n40C_1v28`, which fails by 0.27 ns. The rest range from 0.26 to 1.09 ns. These are ideal-wire, ideal-clock numbers, so they are optimistic.
+
+![Pre-layout setup TNS](images/xl_pre_tns.png)
+
+*Figure 7c. Pre-layout total negative slack (setup only).*
+
+TNS is zero at 13 corners. It is -80.81 ns at `ss_n40C_1v28`, -16.19 ns at `ss_n40C_1v35` and -1.17 ns at `ss_n40C_1v40`. Hold violations are not counted in TNS.
+
+![Post-route setup slack](images/xl_post_setup.png)
+
+*Figure 7d. Post-route setup slack at the 16 corners (run `final2`, propagated clock and extracted parasitics).*
+
+Setup improved at every failing corner after layout. `ss_n40C_1v28` goes from -8.38 to -6.28 ns and `ss_n40C_1v35` from -2.91 to -1.28 ns. `ss_n40C_1v40` now passes at +0.92 ns. Only two corners still fail setup.
+
+![Post-route hold slack](images/xl_post_hold.png)
+
+*Figure 7e. Post-route hold slack at the 16 corners.*
+
+Hold got worse at the cold slow corners. Four corners now fail: `ss_n40C_1v28` (-2.42 ns), `1v35` (-1.22 ns), `1v40` (-0.56 ns) and `1v44` (-0.19 ns). Every corner at 1.60 V or above still passes.
+
+![Post-route setup TNS](images/xl_post_tns.png)
+
+*Figure 7f. Post-route total negative slack (setup only).*
+
+TNS is -51.10 ns at `ss_n40C_1v28` and -3.71 ns at `ss_n40C_1v35`, and zero everywhere else. Both are better than before layout (-80.81 and -16.19 ns).
+
+![Slack against supply voltage](images/fig_sta_per_corner.png)
+
+*Figure 7g. Slack against supply voltage, one line per process and temperature (dashed = pre-layout, solid = post-route). Every line rises with voltage. The `ss_n40C` line crosses zero at about 1.4 V for setup and about 1.5 V for hold, so everything at or above the 1.60 V rated minimum passes.*
 
 ![Setup TNS at the violating corners](images/fig_sta_tns.png)
 
-*Figure 7d. Total negative slack (setup only) at the corners that violate. Post-route TNS is lower than pre-layout at `ss_n40C_1v28` (-51.10 against -80.81) and `1v35` (-3.71 against -16.19), and zero at `1v40`. Hold violations are not counted in TNS.*
+*Figure 7h. Setup TNS at all 16 corners (zero is no setup violation). Post-route TNS is better than pre-layout at `ss_n40C_1v28` (-51.10 against -80.81) and `1v35` (-3.71 against -16.19), and zero at `1v40`. Hold violations are not counted in TNS.*
 
 ### 6.3 Reading the results
 
