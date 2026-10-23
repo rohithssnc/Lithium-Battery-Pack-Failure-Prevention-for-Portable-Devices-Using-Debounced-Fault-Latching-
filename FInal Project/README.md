@@ -682,9 +682,11 @@ Hold got worse at the cold slow corners. Four corners now fail: `ss_n40C_1v28` (
 
 TNS is -51.10 ns at `ss_n40C_1v28` and -3.71 ns at `ss_n40C_1v35`, and zero everywhere else. Both are better than before layout (-80.81 and -16.19 ns).
 
-![Slack against supply voltage](images/fig_sta_per_corner.png)
+![Setup and hold slack, one panel per corner](images/fig_sta_per_corner.png)
 
-*Figure 7g. Slack against supply voltage, one line per process and temperature (dashed = pre-layout, solid = post-route). Every line rises with voltage. The `ss_n40C` line crosses zero at about 1.4 V for setup and about 1.5 V for hold, so everything at or above the 1.60 V rated minimum passes.*
+*Figure 7g. One panel per corner, with pre-layout (blue) and post-route (orange) side by side for setup and hold. Panel titles in red mark corners that violate after routing; hatched bars are negative slack.*
+
+Read each panel as four bars: setup before and after layout, then hold before and after. Setup bars are taller after routing at every corner. The four red panels (`ss_n40C_1v28`, `1v35`, `1v40`, `1v44`) are the cold slow corners, where the post-route hold bar goes below zero.
 
 ![Setup TNS at the violating corners](images/fig_sta_tns.png)
 
