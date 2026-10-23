@@ -545,6 +545,7 @@ Two synthesis runs were done, both against the `sky130_fd_sc_hd__tt_025C_1v80` l
 | Run | Chip area |
 |---|---|
 | Standalone Yosys check (flatten + abc) | 1368.8128 um^2 |
+![alt text](<Screenshot 2026-10-12 200123.png>) ![alt text](<Screenshot 2026-10-12 200755.png>) ![alt text](<Screenshot 2026-10-12 200420.png>)
 | OpenLane synthesis (run `final2`, `SYNTH_STRATEGY=AREA 0`) | **1347.5424 um^2** |
 
 The two use different scripts, so they differ by about 21 um^2. The OpenLane number is the one this project reports, because that netlist is what went through the rest of the flow.
