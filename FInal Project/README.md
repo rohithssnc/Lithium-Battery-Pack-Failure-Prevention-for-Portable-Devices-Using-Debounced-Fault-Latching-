@@ -223,10 +223,9 @@ settle, so GLS samples 4 ns after the edge, still well inside the 5 ns half-peri
 
 ![Real GTKWave crop, reset and tests B1 to B5](images/wave_rtl_B1_B5.png)
 
-*Figure 2. Real GTKWave crop of the RTL run, about 0.45 to 1.5 us (reset and tests B1 to B5). `rst_n` dips and the red X on `chg_en`, `dsg_en`
-and `fault` becomes 0. `vt` = 4 and `ct` = 2 (`dbn_sel` = 01). Four narrow glitches on `uv`, `ov`, `occ`, `ocd` fall inside the `watch` window and
-`fault` stays 0. Then `ov` is high for the full limit: `fault[0]` latches, `chg_en` drops, and it returns after `clear`
-(B4), followed by the sustained-OV test (B5), where `fault` stays `1` until a `clear` arrives with `ov` low.*
+*Figure 2. Real GTKWave crop of the RTL run, about 0.45 to 1.5 us (reset and tests B1 to B5).*
+
+**What Figure 2 shows.** `rst_n` dips and the red X on `chg_en`, `dsg_en` and `fault` becomes 0 (B1). Both enables rise two clocks after `rst_n` rises (B2). `vt` = 4 and `ct` = 2 because `dbn_sel` is 01. Four narrow glitches on `uv`, `ov`, `occ` and `ocd` fall inside the `watch` window and `fault` stays 0 (B3). Then `ov` is high for the full limit, so `fault[0]` latches, `chg_en` drops, and it returns after `clear` (B4). The sustained-OV test (B5) keeps `fault` at `1` until a `clear` arrives with `ov` low. The case-by-case table is under Figure 4b in section 4.
 
 ### 3.6 Helper tasks
 
@@ -402,31 +401,111 @@ gtkwave tb_battery_protect.vcd
 
 Signals worth adding: `clk, rst_n, ov, uv, occ, ocd, tick, clear, dbn_sel, chg_en, dsg_en, fault`.
 Everything inside `dut` (counters, trips) is internal and can be ignored for comparison.
+Each figure below is followed directly by its explanation. Test times come from the markers printed at the start of each test, and positions read off the screenshots are approximate.
 
 ![GTKWave, RTL simulation](images/shot_gtkwave_rtl.png)
 
-*Figure 3. Real GTKWave screenshot of the RTL run (cursor at 905 ns). The `d_in`, `d_rst_n`, `d_tick` and `d_trip` traces at the far left are Part A (standalone debounce).
-Part B starts when `rst_n` falls and `logging` goes high. `dbn_sel` steps through 00, 01, 10, 11 (`vt` 2/4/8/16, `ct` 1/2/4/8) during test B13,
-and `tick_fast` drops near the end for test B14. `errors` stays at 0.*
+*Figure 3. Real GTKWave screenshot of the full RTL run (cursor at 905 ns).*
+
+**What Figure 3 shows**
+
+- The time axis runs 0 to 6.09 us, and each test is a slice of it. The sections after Figure 4 zoom into those slices.
+- Red (X) at the start on `chg_en`, `dsg_en`, `fault`, `ct`, `vt` and `s` is expected. The design has no initial values, so they are undefined until the first reset at about 0.5 us.
+- `ov`, `uv`, `occ`, `ocd`, `clear`, `rst_n`, `dbn_sel` and `tick_fast` are driven by the testbench.
+- `chg_en`, `dsg_en` and `fault[3:0]` are the checked outputs. `errors` must stay 0.
+- `vt` and `ct` show the current debounce limits, and `s` is the `dbn_sel` sweep counter.
+- `watch` is high while the testbench checks that nothing gets cut. `cut_seen` is the alarm that would rise if something did. It stays flat here.
+- `d_in`, `d_rst_n`, `d_tick` and `d_trip` at the far left are Part A (the standalone debounce, 0 to 0.49 us). `d_trip` pulses a few times and `d_tick` goes low from about 0.24 to 0.36 us. This shows the debounce alone trips at its limit, holds, drops with the input, restarts if interrupted, does not count without `tick`, and clears on an async reset (A1 to A6).
+- Part B starts when `rst_n` falls and `logging` goes high.
+- `dbn_sel` steps through 00, 01, 10, 11 (`vt` 2/4/8/16, `ct` 1/2/4/8) during test B13. The pulses get wider as the limits grow, so the right half of the screenshot looks stretched.
+- At setting 00, `ct` is 1, so the occ/ocd glitch test is skipped, and a one-clock pulse there is the limit and trips straight away.
+- `tick_fast` drops near the end for test B14.
 
 ![GTKWave, gate-level simulation](images/shot_gtkwave_gls.png)
 
-*Figure 4. Real GTKWave screenshot of the gate-level run (`gls.vcd`, cursor at 790 ns). Part A is absent (it needs the `debounce` module), and the same Part B sequence plays out:
-the same `dbn_sel` steps, the same fault pattern, `errors` = 0. Everything is shifted about 0.49 us earlier than in Figure 3, which is the length of Part A.*
+*Figure 4. Real GTKWave screenshot of the gate-level run (`gls.vcd`, cursor at 790 ns).*
 
-**Zoomed crops of the RTL screenshot.** Same signals as Figure 3, cropped to the tests named in each caption.
+**What Figure 4 shows**
+
+- The same Part B sequence plays out as in Figure 3: the same `dbn_sel` steps, the same fault pattern, and `errors` = 0.
+- The `d_*` Part A traces are absent, because the netlist has no standalone `debounce` module.
+- Everything is about 0.49 us earlier, which is the length of Part A. The `dbn_sel` steps appear at about 1.77, 2.15, 2.73, 3.55 and 4.85 us.
+- This matches the exact comparison in Figure 4a, where the RTL and gate-level `CYC` logs are identical.
+
+![Real GTKWave crop, reset and tests B1 to B5](images/wave_rtl_B1_B5.png)
+
+*Figure 4b. Real crop of the RTL run, about 0.45 to 1.5 us: reset and tests B1 to B5 (same crop as Figure 2).*
+
+**What Figure 4b shows**
+
+| Case | Window (us) | What you see | What it proves |
+|---|---|---|---|
+| **B1** reset | 0.486 to 0.508 | `rst_n` falls at about 0.5. The red X on `chg_en`, `dsg_en` and `fault` becomes 0. `logging` goes high. | Reset forces both outputs off and clears all faults. |
+| **B2** wake-up | 0.508 to 0.526 | `rst_n` rises, and two clocks later `chg_en` and `dsg_en` go high. | Outputs come on after reset, not instantly. |
+| **B3** short glitches | 0.526 to 0.766 | Four narrow pulses on `ov`, `uv`, `occ`, `ocd`. `watch` is high. `fault` stays 0 and both enables stay high. | A pulse one clock shorter than the limit is ignored, and `cut_seen` never rises. |
+| **B4** OV trips | 0.766 to 0.946 | `ov` high for 4 clocks, `fault` shows `1`, `chg_en` drops, then `clear` brings it back. | OV trips at exactly the limit, cuts only charge, and stays latched after the flag drops. |
+| **B5** sustained OV | 0.946 to 1.136 | A longer `ov`, a `clear` pulse while `ov` is still high, then `ov` drops and a second `clear`. `fault` stays `1` until the second `clear`. | `clear` is ignored while the raw flag is present. |
+
+`vt` = 4 and `ct` = 2 here, because `dbn_sel` is 01. `clear` is about 31 ns wide, which is the 3 clocks that `do_clear` holds it.
 
 ![Real crop, B6 to B10](images/wave_rtl_B6_B10.png)
 
-*Figure 4b. About 1.1 to 2.0 us. `fault` steps `2` (UV, `dsg_en` drops), `4` (OCC, `chg_en` drops), `8` (OCD, `dsg_en` drops), then `F` when all four flags are high and both enables are low (B6 to B9). The two `ov` pulses on the right with a one-clock gap are B10, with `watch` high and `fault` staying 0.*
+*Figure 4c. Real crop of the RTL run, about 1.1 to 2.0 us: tests B6 to B10.*
+
+**What Figure 4c shows**
+
+| Case | Window (us) | What you see | What it proves |
+|---|---|---|---|
+| **B6** UV | 1.136 to 1.326 | `fault` shows `2`. `dsg_en` drops and `chg_en` stays high. | UV cuts only discharge, with the same latching. |
+| **B7** OCC | 1.326 to 1.496 | `fault` shows `4`. `chg_en` drops. | Charge over-current cuts only charge. |
+| **B8** OCD | 1.496 to 1.716 | `fault` shows `8`. `dsg_en` drops. | Discharge over-current cuts only discharge. |
+| **B9** all four | 1.716 to 1.856 | `fault` shows `F` and both enables are low together. | The four faults are independent and combine correctly. |
+| **B10** split pulses | 1.856 to 1.966 | `ov` pulses twice with a one-clock gap. `watch` is high. `fault` stays 0. | The count restarts when the flag drops, so two short pulses do not add up. |
 
 ![Real crop, B11 to B13 start](images/wave_rtl_B12_B13start.png)
 
-*Figure 4c. About 2.0 to 2.6 us. `fault` goes `1`, `3`, `2`, `0` as the selective release plays out (B12). `dbn_sel` then changes from 00 to 01 and `vt`/`ct`/`s` follow (2/1/0 to 4/2/1 and so on), the start of the B13 sweep.*
+*Figure 4d. Real crop of the RTL run, about 2.0 to 2.6 us: B11, B12 and the start of B13.*
+
+**What Figure 4d shows**
+
+| Case | Window (us) | What you see | What it proves |
+|---|---|---|---|
+| **B11** clear with no fault | 1.966 to 1.996 | One `clear` pulse and nothing changes. | A stray `clear` is harmless. |
+| **B12** selective release | 1.996 to 2.256 | `fault` goes `1`, then `3`, then `2`, then `0`. | One `clear` released OV (its flag was gone) but held UV (its flag was still present). A second `clear` released UV after its flag dropped. |
+| **B13** `dbn_sel` sweep (start) | from 2.256 | `dbn_sel` changes from 00 to 01 and `vt`, `ct` and `s` follow. | Each setting has its own limit. |
+
+**B13 in detail.** The whole sweep runs from 2.256 to 5.356 us and has four parts. The limits are the values you see on `vt` and `ct`:
+
+| `dbn_sel` | `vt` (ov, uv) | `ct` (occ, ocd) | Starts at (us) |
+|---|---|---|---|
+| 00 | 2 | 1 | about 2.26 |
+| 01 | 4 | 2 | about 2.64 |
+| 10 | 8 | 4 | about 3.22 |
+| 11 | 16 | 8 | about 4.04 |
+
+Each part does the same two things. First it sends a pulse one clock short of the limit on each flag, and nothing trips (the `watch` high region). Then it sends a pulse of exactly the limit on each flag in turn, so `fault` shows 1, 2, 4, 8 one after another, each followed by a `clear`.
 
 ![Real crop, B14 and B15](images/wave_rtl_B14_B15.png)
 
-*Figure 4d. About 5.4 to 6.1 us. `tick_fast` is low, so `tick` pulses only every few clocks and `fault[0]` latches late after a long `ov` (B14). At the right, `fault` shows the combined OV and OCD value and `rst_n` dips, which clears everything (B15).*
+*Figure 4e. Real crop of the RTL run, about 5.4 to 6.1 us: tests B14 and B15.*
+
+**What Figure 4e shows**
+
+| Case | Window (us) | What you see | What it proves |
+|---|---|---|---|
+| **B14** slow tick | 5.356 to 5.966 | `tick_fast` goes low from about 5.36 to 5.95, so `tick` pulses only every few clocks. A short `ov` does nothing, then a long `ov` makes `fault` show `1`. | The debounce counts ticks, not clocks. |
+| **B15** reset mid-fault | 5.966 to 6.086 | `fault` shows `9` (OV and OCD), then `rst_n` dips low at the far right and everything goes to 0. | An async reset clears latched faults and turns the outputs off immediately. |
+
+The short `1001` pulse in B15 is too small to read at this zoom.
+
+**What a failure would look like**
+
+- `errors` going above 0, with the console printing the failing test and time.
+- `cut_seen` rising, which means a glitch caused a cut-off.
+- `fault` showing the wrong value, for example `3` where the testbench expects `1`.
+- `chg_en` or `dsg_en` dropping at the wrong time.
+
+None of this happens in the run shown.
 
 ### Checking the testbench against the waveforms
 
@@ -445,64 +524,7 @@ The real GTKWave screenshots were compared with the testbench source and the per
 | Final reset | `rst_n` dips at the far right and `fault` returns to 0 | Yes, B15 |
 | GLS | Same sequence, shifted about 0.49 us earlier (no Part A) | Yes |
 
-Limits of what the waveform shows: it shows behaviour, not the check outcomes. Those are `errors` = 0 and a flat `cut_seen`, plus the PASS line in the log. The short `1001` pulse in B15 is too small to read at this zoom.
-
-### Reading the waveforms, case by case
-
-The times below come from the RTL run, with a marker printed at the start of each test. Positions read off the screenshots are approximate.
-
-**How to read Figure 3**
-
-- The time axis runs 0 to 6.09 us, and each test is a slice of it.
-- Red (X) at the start on `chg_en`, `dsg_en`, `fault`, `ct`, `vt` and `s` is expected. The design has no initial values, so these are undefined until the first reset at about 0.5 us.
-- `ov`, `uv`, `occ`, `ocd`, `clear`, `rst_n`, `dbn_sel` and `tick_fast` are driven by the testbench.
-- `chg_en`, `dsg_en` and `fault[3:0]` are the checked outputs. `errors` must stay 0.
-- `vt` and `ct` show the current debounce limits, and `s` is the `dbn_sel` sweep counter.
-- `watch` is high while the testbench checks that nothing gets cut. `cut_seen` is the alarm that would rise if something did.
-- `d_in`, `d_rst_n`, `d_tick` and `d_trip` belong to Part A, the standalone debounce test.
-
-| Case | Window (us) | What you see | What it proves |
-|---|---|---|---|
-| **Part A** (A1 to A6) | 0 to 0.49 | Only the `d_*` traces move. `d_trip` pulses a few times. `d_tick` goes low from about 0.24 to 0.36. | The debounce alone trips at exactly its limit, holds, drops with the input, restarts if interrupted, does not count without `tick`, and clears on an async reset. |
-| **B1** reset | 0.486 to 0.508 | `rst_n` falls at about 0.5. The red X on `chg_en`, `dsg_en` and `fault` becomes 0. `logging` goes high. | Reset forces both outputs off and clears all faults. |
-| **B2** wake-up | 0.508 to 0.526 | `rst_n` rises, and two clocks later `chg_en` and `dsg_en` go high. | Outputs come on after reset, not instantly. |
-| **B3** short glitches | 0.526 to 0.766 | Four narrow pulses on `ov`, `uv`, `occ`, `ocd`. `watch` is high. `fault` stays 0 and both enables stay high. | A pulse one clock shorter than the limit is ignored, and `cut_seen` never rises. |
-| **B4** OV trips | 0.766 to 0.946 | `ov` high for 4 clocks, `fault` shows `1`, `chg_en` drops, then `clear` brings it back. | OV trips at exactly the limit, cuts only charge, and stays latched after the flag drops (see Figure 2). |
-| **B5** sustained OV | 0.946 to 1.136 | A longer `ov`, a `clear` pulse while `ov` is still high, then `ov` drops and a second `clear`. `fault` stays `1` until the second `clear`. | `clear` is ignored while the raw flag is present. |
-| **B6** UV | 1.136 to 1.326 | `fault` shows `2`. `dsg_en` drops and `chg_en` stays high. | UV cuts only discharge, with the same latching. |
-| **B7** OCC | 1.326 to 1.496 | `fault` shows `4`. `chg_en` drops. | Charge over-current cuts only charge. |
-| **B8** OCD | 1.496 to 1.716 | `fault` shows `8`. `dsg_en` drops. | Discharge over-current cuts only discharge. |
-| **B9** all four | 1.716 to 1.856 | `fault` shows `F` and both enables are low together. | The four faults are independent and combine correctly. |
-| **B10** split pulses | 1.856 to 1.966 | `ov` pulses twice with a one-clock gap. `watch` is high. `fault` stays 0. | The count restarts when the flag drops, so two short pulses do not add up. |
-| **B11** clear with no fault | 1.966 to 1.996 | One `clear` pulse and nothing changes. | A stray `clear` is harmless. |
-| **B12** selective release | 1.996 to 2.256 | `fault` goes `1`, then `3`, then `2`, then `0`. | One `clear` released OV (its flag was gone) but held UV (its flag was still present). A second `clear` released UV after its flag dropped. |
-| **B13** `dbn_sel` sweep | 2.256 to 5.356 | `dbn_sel` steps 00, 01, 10, 11 and back to 01. `vt` and `ct` change with it. The pulses get longer in each sweep. | Every setting trips at exactly its own limit (details below). |
-| **B14** slow tick | 5.356 to 5.966 | `tick_fast` goes low from about 5.36 to 5.95. A short `ov` does nothing, then a long `ov` makes `fault` show `1`. | The debounce counts ticks, not clocks. |
-| **B15** reset mid-fault | 5.966 to 6.086 | `fault` shows `9` (OV and OCD), then `rst_n` dips low at the far right and everything goes to 0. | An async reset clears latched faults and turns the outputs off immediately. |
-
-**B13 in detail.** It has four sweeps. The limits are the values you see on `vt` and `ct`:
-
-| `dbn_sel` | `vt` (ov, uv) | `ct` (occ, ocd) | Starts at (us) |
-|---|---|---|---|
-| 00 | 2 | 1 | about 2.26 |
-| 01 | 4 | 2 | about 2.64 |
-| 10 | 8 | 4 | about 3.22 |
-| 11 | 16 | 8 | about 4.04 |
-
-Each sweep does the same two things. First it sends a pulse one clock short of the limit on each flag, and nothing trips (the `watch` high region). Then it sends a pulse of exactly the limit on each flag in turn, so `fault` shows 1, 2, 4, 8 one after another, each followed by a `clear`.
-
-The sweeps take longer as the limits grow, which is why the pulses on the right of Figure 3 are so much wider. At setting 00, `ct` is 1, so the occ/ocd glitch test is skipped, and a one-clock pulse there is the limit and trips straight away.
-
-**What a failure would look like**
-
-- `errors` going above 0, with the console printing the failing test and time.
-- `cut_seen` rising, which means a glitch caused a cut-off.
-- `fault` showing the wrong value, for example `3` where the testbench expects `1`.
-- `chg_en` or `dsg_en` dropping at the wrong time.
-
-None of this happens in the run shown.
-
-**Gate-level run (Figure 4).** The same sequence appears with two differences. The `d_*` Part A traces are absent, because the netlist has no standalone `debounce` module. Everything is also about 0.49 us earlier, so the `dbn_sel` steps appear at about 1.77, 2.15, 2.73, 3.55 and 4.85 us.
+The waveform shows behaviour, not the check outcomes. Those are `errors` = 0 and a flat `cut_seen`, plus the PASS line in the log.
 
 ### Problems found and fixed during verification
 
